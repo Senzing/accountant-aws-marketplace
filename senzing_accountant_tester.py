@@ -5,13 +5,13 @@ import time
 import os
 import threading
 
-import senzing_governor
-from senzing_governor import Governor
+import senzing_accountant
+from senzing_accountant import Accountant
 
 __all__ = []
 __version__ = "1.0.0"  # See https://www.python.org/dev/peps/pep-0396/
-__date__ = '2020-08-26'
-__updated__ = '2020-08-26'
+__date__ = '2021-05-17'
+__updated__ = '2021-05-18'
 
 log_format = '%(asctime)s %(message)s'
 
@@ -22,17 +22,13 @@ log_format = '%(asctime)s %(message)s'
 
 class ExampleThread(threading.Thread):
 
-    def __init__(self, governor, counter_max):
+    def __init__(self, accountant, counter_max):
         threading.Thread.__init__(self)
-        self.counter = 0
-        self.counter_max = counter_max
-        self.governor = governor
+        self.accountant = accountant
 
     def run(self):
-        while self.counter < self.counter_max:
-            self.counter += 1
-            self.governor.govern()
-            logging.info("{0}".format(threading.current_thread().name))
+        self.accountant.account()
+        logging.info("{0}".format(threading.current_thread().name))
 
 # -----------------------------------------------------------------------------
 # main
@@ -45,17 +41,17 @@ if __name__ == '__main__':
 
     log_level = logging.INFO
     logging.basicConfig(format=log_format, level=log_level)
-    logging.info("Governor file: {0}".format(senzing_governor.__file__))
+    logging.info("Accountant file: {0}".format(senzing_accountant.__file__))
 
-    # Create Governor.
+    # Create Accountant.
 
-    governor = Governor(hint="Tester")
+    accountant = Accountant(hint="Tester")
 
     # Create threads.
 
     threads = []
     for i in range(0, 5):
-        thread = ExampleThread(governor, 1000)
+        thread = ExampleThread(accountant, 1000)
         thread.name = "{0}-thread-{1}".format(ExampleThread.__name__, i)
         threads.append(thread)
 
@@ -69,6 +65,6 @@ if __name__ == '__main__':
     for thread in threads:
         thread.join()
 
-    # Done with Governor.
+    # Done with Accountant.
 
-    governor.close()
+    accountant.close()

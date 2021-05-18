@@ -1,23 +1,27 @@
-ARG BASE_IMAGE=senzing/senzing-base:1.5.2
+ARG BASE_IMAGE=senzing/senzing-base:1.5.5
 FROM ${BASE_IMAGE}
 
-ENV REFRESHED_AT=2020-03-01
+ENV REFRESHED_AT=2021-05-17
 
-LABEL Name="senzing/template" \
+LABEL Name="senzing/accountant-aws-marketplace" \
       Maintainer="support@senzing.com" \
       Version="1.0.0"
 
-HEALTHCHECK CMD ["/app/healthcheck.sh"]
+HEALTHCHECK CMD ["/app/accountant-aws-marketplace.py"]
 
 # Run as "root" for system installation.
 
 USER root
 
-# Install packages via apt.
+# Install packages via PIP.
+
+RUN pip3 install \
+      boto3
 
 # Copy files from repository.
 
 COPY ./rootfs /
+COPY ./accountant-aws-marketplace.py /app/
 
 # Make non-root container.
 
