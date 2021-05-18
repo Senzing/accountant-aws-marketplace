@@ -11,7 +11,7 @@ from senzing_accountant import Accountant
 __all__ = []
 __version__ = "1.0.0"  # See https://www.python.org/dev/peps/pep-0396/
 __date__ = '2021-05-17'
-__updated__ = '2021-05-17'
+__updated__ = '2021-05-18'
 
 log_format = '%(asctime)s %(message)s'
 

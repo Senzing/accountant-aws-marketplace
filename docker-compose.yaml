@@ -1,0 +1,26 @@
+version: '3'
+services:
+
+  accountant:
+    container_name: senzing-accountant-aws-marketplace
+    environment:
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN}
+      SENZING_ACCOUNTANT_AWS_MARKETPLACE_DRY_RUN: "true"
+      SENZING_ACCOUNTANT_AWS_MARKETPLACE_PRODUCT_CODE: 12345
+      SENZING_ACCOUNTANT_AWS_MARKETPLACE_USAGE_DIMENSION: my-dimension
+      SENZING_ACCOUNTANT_AWS_MARKETPLACE_USAGE_QUANTITY: 1
+    healthcheck:
+      interval: 1m
+      retries: 3
+      test: /app/accountant-aws-marketplace.py
+      timeout: 10s
+    image: senzing/accountant-aws-marketplace:${SENZING_DOCKER_IMAGE_VERSION_ACCOUNTANT_AWS_MARKETPLACE:-latest}
+    networks:
+      - backend
+    restart: on-failure
+
+networks:
+  backend:
