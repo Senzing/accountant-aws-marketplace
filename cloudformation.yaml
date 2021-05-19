@@ -1,0 +1,528 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+# File format follows https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-anatomy.html
+# Tests:
+#     Lint: https://github.com/aws-cloudformation/cfn-python-lint
+#     Nag: https://github.com/stelligent/cfn_nag
+#     aws cloudformation validate-template: https://awscli.amazonaws.com/v2/documentation/api/latest/reference/cloudformation/validate-template.html
+
+Description: >-
+  Senzing accountant-aws-marketplace: 1.0.0
+  For more information see
+  https://github.com/Senzing/accountant-aws-marketplace
+
+# -----------------------------------------------------------------------------
+# Metadata
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/metadata-section-structure.html
+# -----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
+# Parameters
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/parameters-section-structure.html
+# -----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
+# Rules
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/rules-section-structure.html
+# -----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
+# Mappings
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/mappings-section-structure.html
+# -----------------------------------------------------------------------------
+
+Mappings:
+
+  Constants:
+    Stack:
+      Name: accountant
+  VpcCidrs:
+    vpc:
+      cidr: 10.0.0.0/16
+    privsubnet1:
+      cidr: 10.0.1.0/24
+    privsubnet2:
+      cidr: 10.0.2.0/24
+    pubsubnet1:
+      cidr: 10.0.3.0/24
+    pubsubnet2:
+      cidr: 10.0.4.0/24
+
+# -----------------------------------------------------------------------------
+# Conditions
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/conditions-section-structure.html
+# -----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
+# Resources
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/resources-section-structure.html
+# -----------------------------------------------------------------------------
+
+Resources:
+
+# -- Iam -----------------------------------------------------------------
+
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-iam-role.html
+# AWS Console: https://console.aws.amazon.com/iam/home?#/roles > Search for {stack}
+
+  IamRoleAccountant:
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          -
+            Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - ecs-tasks.amazonaws.com
+        Version: '2012-10-17'
+      Description: !Sub "${AWS::StackName}-iam-role-accountant"
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-iam-role-accountant"
+    Type: AWS::IAM::Role
+
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-iam-policy.html
+# AWS Console: https://console.aws.amazon.com/iam/home?#/roles > Search for {stack} > {role} > inline policy
+
+  IamPolicyAccountant:
+    Properties:
+      PolicyName: !Sub "${AWS::StackName}-iam-policy-accountant"
+      PolicyDocument:
+        Statement:
+          -
+            Action:
+              - aws-marketplace:MeterUsage
+            Effect: Allow
+            Resource:
+              - '*'
+        Version: '2012-10-17'
+      Roles:
+       - !Ref IamRoleAccountant
+    Type: AWS::IAM::Policy
+
+
+  IamPolicyLoggingCreateStream:
+    Properties:
+      PolicyName: !Sub "${AWS::StackName}-iam-policy-logging-create-stream"
+      PolicyDocument:
+        Statement:
+          -
+            Action:
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+            Effect: Allow
+            Resource:
+              - '*'
+        Version: '2012-10-17'
+      Roles:
+       - !Ref IamRoleAccountant
+    Type: AWS::IAM::Policy
+
+
+  IamPolicyTaskRunner:
+    Properties:
+      PolicyName: !Sub "${AWS::StackName}-iam-policy-task-runner"
+      PolicyDocument:
+        Statement:
+          -
+            Action:
+              - ecs:DescribeTasks
+              - ecs:RunTask
+            Effect: Allow
+            Resource:
+              - '*'
+        Version: '2012-10-17'
+      Roles:
+       - !Ref IamRoleAccountant
+    Type: AWS::IAM::Policy
+
+# -- Logging ------------------------------------------------------------------
+
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-logs-loggroup.html
+# AWS Console: https://console.aws.amazon.com/cloudwatch/home?#logsV2:log-groups > Search for {stack}
+
+  LogsLogGroupMain:
+    Properties:
+      LogGroupName: !Sub
+        - "/senzing/${StackName}/${AWS::StackName}"
+        - StackName: !FindInMap [Constants, Stack, Name]
+    Type: AWS::Logs::LogGroup
+
+# -- Cloud, subnets, routing --------------------------------------------------
+
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-vpc.html
+# AWS Console: https://console.aws.amazon.com/vpc/home?#vpcs > Search for {stack}
+
+  Ec2Vpc:
+    Properties:
+      CidrBlock: !FindInMap
+        - VpcCidrs
+        - vpc
+        - cidr
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-ec2-vpc"
+    Type: AWS::EC2::VPC
+
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-subnet.html
+# AWS Console: https://console.aws.amazon.com/vpc/home?#subnets > Search for {stack}
+
+  Ec2SubnetPrivate1:
+    Properties:
+      AvailabilityZone: !Select
+          - '0'
+          - !GetAZs
+            Ref: AWS::Region
+      CidrBlock: !FindInMap
+        - VpcCidrs
+        - privsubnet1
+        - cidr
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-ec2-subnet-private-1"
+      VpcId: !Ref Ec2Vpc
+    Type: AWS::EC2::Subnet
+
+
+  Ec2SubnetPrivate2:
+    Properties:
+      AvailabilityZone: !Select
+          - '1'
+          - !GetAZs
+            Ref: AWS::Region
+      CidrBlock: !FindInMap
+        - VpcCidrs
+        - privsubnet2
+        - cidr
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-ec2-subnet-private-2"
+      VpcId: !Ref Ec2Vpc
+    Type: AWS::EC2::Subnet
+
+
+  Ec2SubnetPublic1:
+    Properties:
+      AvailabilityZone: !Select
+          - '0'
+          - !GetAZs
+            Ref: AWS::Region
+      CidrBlock: !FindInMap
+        - VpcCidrs
+        - pubsubnet1
+        - cidr
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-ec2-subnet-public-1"
+      VpcId: !Ref Ec2Vpc
+    Type: AWS::EC2::Subnet
+
+
+  Ec2SubnetPublic2:
+    Properties:
+      AvailabilityZone: !Select
+          - '1'
+          - !GetAZs
+            Ref: AWS::Region
+      CidrBlock: !FindInMap
+        - VpcCidrs
+        - pubsubnet2
+        - cidr
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-ec2-subnet-public-2"
+      VpcId: !Ref Ec2Vpc
+    Type: AWS::EC2::Subnet
+
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-eip.html
+# AWS Console: https://console.aws.amazon.com/vpc/home?#Addresses: > Search for {stack}
+
+  Ec2Eip:
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-ec2-eip"
+    Type: AWS::EC2::EIP
+
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-natgateway.html
+# AWS Console: https://console.aws.amazon.com/vpc/home?#NatGateways: > Search for {stack}
+
+  Ec2NatGateway:
+    Properties:
+      AllocationId: !GetAtt Ec2Eip.AllocationId
+      SubnetId: !Ref Ec2SubnetPublic1
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-ec2-nat-gateway"
+    Type: AWS::EC2::NatGateway
+
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-security-group.html
+# AWS Console: https://console.aws.amazon.com/vpc/home?#SecurityGroups > Search for {stack}
+
+  Ec2SecurityGroupInternal:
+    Properties:
+      GroupDescription: !Sub "${AWS::StackName} - ECS internal open ports."
+      SecurityGroupEgress:
+        -
+          CidrIp: 0.0.0.0/0
+          Description: All
+          IpProtocol: '-1'
+      SecurityGroupIngress:
+        -
+          CidrIp: !FindInMap
+            - VpcCidrs
+            - vpc
+            - cidr
+          Description: SSH
+          FromPort: 22
+          IpProtocol: tcp
+          ToPort: 22
+        -
+          CidrIp: !FindInMap
+            - VpcCidrs
+            - vpc
+            - cidr
+          Description: HTTP
+          FromPort: 80
+          IpProtocol: tcp
+          ToPort: 80
+        -
+          CidrIp: !FindInMap
+            - VpcCidrs
+            - vpc
+            - cidr
+          Description: HTTPS
+          FromPort: 443
+          IpProtocol: tcp
+          ToPort: 443
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-ec2-security-group-internal"
+      VpcId: !Ref Ec2Vpc
+    Type: AWS::EC2::SecurityGroup
+
+
+  Ec2SecurityGroupLoadBalancerPrivate:
+    Properties:
+      GroupDescription: !Sub "${AWS::StackName} - Private load balancer open ports."
+      SecurityGroupEgress:
+        -
+          CidrIp: 0.0.0.0/0
+          Description: All
+          IpProtocol: '-1'
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-ec2-security-group-alb-private"
+      VpcId: !Ref Ec2Vpc
+    Type: AWS::EC2::SecurityGroup
+
+
+  Ec2SecurityGroupLoadBalancerPublic:
+    Properties:
+      GroupDescription: !Sub "${AWS::StackName} - Public load balancer open ports."
+      SecurityGroupEgress:
+        -
+          CidrIp: 0.0.0.0/0
+          Description: All
+          IpProtocol: '-1'
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-ec2-security-group-alb-public"
+      VpcId: !Ref Ec2Vpc
+    Type: AWS::EC2::SecurityGroup
+
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-internetgateway.html
+# AWS Console: https://console.aws.amazon.com/vpc/home?#igws > Search for {stack}
+
+  Ec2InternetGateway:
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-ec2-internet-gateway"
+    Type: AWS::EC2::InternetGateway
+
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-vpc-gateway-attachment.html
+# AWS Console: https://console.aws.amazon.com/vpc/home?#igws > Search for {stack} > State & VPI ID
+
+  Ec2VpcGatewayAttachment:
+    Properties:
+      InternetGatewayId: !Ref Ec2InternetGateway
+      VpcId: !Ref Ec2Vpc
+    Type: AWS::EC2::VPCGatewayAttachment
+
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-route-table.html
+# AWS Console: https://console.aws.amazon.com/vpc/home?#RouteTables > Search for {stack}
+
+  Ec2RouteTablePrivate:
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-ec2-route-table-private"
+      VpcId: !Ref Ec2Vpc
+    Type: AWS::EC2::RouteTable
+
+
+  Ec2RouteTablePublic:
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-ec2-route-table-public"
+      VpcId: !Ref Ec2Vpc
+    Type: AWS::EC2::RouteTable
+
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-route.html
+# AWS Console: https://console.aws.amazon.com/vpc/home?#RouteTables > {name} > "Routes" tab
+
+  Ec2RoutePrivate:
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref Ec2NatGateway
+      RouteTableId: !Ref Ec2RouteTablePrivate
+    Type: AWS::EC2::Route
+
+
+  Ec2RoutePublic:
+    DependsOn:
+     - Ec2VpcGatewayAttachment
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref Ec2InternetGateway
+      RouteTableId: !Ref Ec2RouteTablePublic
+    Type: AWS::EC2::Route
+
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-subnet-route-table-assoc.html
+# AWS Console: https://console.aws.amazon.com/vpc/home?#RouteTables > {name} > "Subnet Associations" tab
+
+  Ec2SubnetRouteTableAssociationPrivate1:
+    Properties:
+      RouteTableId: !Ref Ec2RouteTablePrivate
+      SubnetId: !Ref Ec2SubnetPrivate1
+    Type: AWS::EC2::SubnetRouteTableAssociation
+
+
+  Ec2SubnetRouteTableAssociationPrivate2:
+    Properties:
+      RouteTableId: !Ref Ec2RouteTablePrivate
+      SubnetId: !Ref Ec2SubnetPrivate2
+    Type: AWS::EC2::SubnetRouteTableAssociation
+
+
+  Ec2SubnetRouteTableAssociationPublic1:
+    Properties:
+      RouteTableId: !Ref Ec2RouteTablePublic
+      SubnetId: !Ref Ec2SubnetPublic1
+    Type: AWS::EC2::SubnetRouteTableAssociation
+
+
+  Ec2SubnetRouteTableAssociationPublic2:
+    Properties:
+      RouteTableId: !Ref Ec2RouteTablePublic
+      SubnetId: !Ref Ec2SubnetPublic2
+    Type: AWS::EC2::SubnetRouteTableAssociation
+
+# -- ECS Cluster --------------------------------------------------------------
+
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ecs-cluster.html
+# AWS Console: https://console.aws.amazon.com/ecs/home?#/clusters > Search for {stack}
+
+  EcsCluster:
+    Properties:
+      ClusterName: !Sub "${AWS::StackName}-cluster"
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-ecs-cluster"
+    Type: AWS::ECS::Cluster
+
+# -- EcsTaskDefinition --------------------------------------------------------
+
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ecs-taskdefinition.html
+# AWS Console: https://console.aws.amazon.com/ecs/home?#/taskDefinitions > Search for {stack}
+
+  EcsTaskDefinitionAccountant:
+    Properties:
+      ContainerDefinitions:
+        -
+          Environment:
+            -
+              Name: SENZING_ACCOUNTANT_AWS_MARKETPLACE_DRY_RUN
+              Value: 'true'
+            -
+              Name: SENZING_ACCOUNTANT_AWS_MARKETPLACE_PRODUCT_CODE
+              Value: '887ynp3mfbkp7v7qdgojv74jt'
+            -
+              Name: SENZING_ACCOUNTANT_AWS_MARKETPLACE_USAGE_DIMENSION
+              Value: 'my-dimension'
+            -
+              Name: SENZING_ACCOUNTANT_AWS_MARKETPLACE_USAGE_QUANTITY
+              Value: '1'
+          Essential: true
+          Image: public.ecr.aws/senzing/accountant-aws-marketplace:1.0.0
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref LogsLogGroupMain
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: service
+          Name: accountant
+          Privileged: false
+          ReadonlyRootFilesystem: false
+      Cpu: '4096'
+      ExecutionRoleArn: !GetAtt IamRoleAccountant.Arn
+      Family: !Sub "${AWS::StackName}-task-definition-accountant"
+      Memory: '8192'
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-ecs-task-definition-accountant"
+      TaskRoleArn: !GetAtt IamRoleAccountant.Arn
+    Type: AWS::ECS::TaskDefinition
+
+# -- EcsService ---------------------------------------------------------------
+
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ecs-service.html
+# AWS Console: https://console.aws.amazon.com/ecs/home?#/clusters > {stack}-cluster > "Services" tab
+
+  EcsServiceAccountant:
+    Properties:
+      Cluster: !Ref EcsCluster
+      DesiredCount: 1
+      EnableECSManagedTags: true
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          SecurityGroups:
+            - !Ref Ec2SecurityGroupInternal
+          Subnets:
+            - !Ref Ec2SubnetPrivate1
+            - !Ref Ec2SubnetPrivate2
+      PlatformVersion: 1.4.0
+      PropagateTags: TASK_DEFINITION
+      ServiceName: accountant
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-ecs-service-accountant"
+      TaskDefinition: !Ref EcsTaskDefinitionAccountant
+    Type: AWS::ECS::Service
+
+# -----------------------------------------------------------------------------
+# Outputs
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/outputs-section-structure.html
+# -----------------------------------------------------------------------------
+
+Outputs:
+
+# AWS Console: https://console.aws.amazon.com/cloudformation/home?#/stacks > {stack} > Outputs
+
+  AccountID:
+    Description: 'The accountID Help: https://hub.senzing.com/aws-cloudformation-ecs-senzing-stack-basic/#accountid'
+    Export:
+      Name: !Sub "${AWS::StackName}-account-id"
+    Value: !Sub "${AWS::AccountId}"
