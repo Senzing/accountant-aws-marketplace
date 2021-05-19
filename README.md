@@ -131,7 +131,7 @@ These are "one-time tasks" which may already have been completed.
 
 ### Environment variables for CLI
 
-1. :pencil2: `accountant-aws-marketplace.py` uses the AWS
+1. `accountant-aws-marketplace.py` uses the AWS
    [boto3](https://aws.amazon.com/sdk-for-python/)
    python library.
    [Configure](https://boto3.amazonaws.com/v1/documentation/api/latest/guide/configuration.html)

@@ -466,7 +466,7 @@ Resources:
             Interval: 300
             Retries: 3
             Timeout: 30
-          Image: public.ecr.aws/senzing/accountant-aws-marketplace:1.0.0
+          Image: senzing/accountant-aws-marketplace:latest
           LogConfiguration:
             LogDriver: awslogs
             Options:
