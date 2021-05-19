@@ -121,10 +121,6 @@ if __name__ == '__main__':
     log_level = log_level_map.get(log_level_parameter, logging.INFO)
     logging.basicConfig(format=log_format, level=log_level)
 
-    # FIXME:  Temporary test to verify Accountant has been invoked.
-
-    response = requests.get('http://michael.dockter.com')
-
     # Create accountant.
 
     with Accountant() as accountant:

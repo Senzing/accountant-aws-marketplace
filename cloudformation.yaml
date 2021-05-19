@@ -456,16 +456,16 @@ Resources:
               Value: '887ynp3mfbkp7v7qdgojv74jt'
             -
               Name: SENZING_ACCOUNTANT_AWS_MARKETPLACE_USAGE_DIMENSION
-              Value: 'my-dimension'
+              Value: 'test-dimension'
             -
               Name: SENZING_ACCOUNTANT_AWS_MARKETPLACE_USAGE_QUANTITY
               Value: '1'
           Essential: true
           HealthCheck:
             Command: [ "CMD-SHELL", "/app/accountant-aws-marketplace.py" ]
-            Interval: 30
+            Interval: 300
             Retries: 3
-            Timeout: 5
+            Timeout: 30
           Image: public.ecr.aws/senzing/accountant-aws-marketplace:1.0.0
           LogConfiguration:
             LogDriver: awslogs
