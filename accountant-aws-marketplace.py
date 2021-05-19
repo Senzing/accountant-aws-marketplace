@@ -8,7 +8,6 @@ import boto3
 from datetime import datetime
 import logging
 import os
-import requests
 import sys
 
 __all__ = []
