@@ -8,12 +8,13 @@ import boto3
 from datetime import datetime
 import logging
 import os
+import requests
 import sys
 
 __all__ = []
 __version__ = "1.0.0"  # See https://www.python.org/dev/peps/pep-0396/
 __date__ = '2021-05-17'
-__updated__ = '2021-05-18'
+__updated__ = '2021-05-19'
 
 SENZING_PRODUCT_ID = "5021"  # See https://github.com/Senzing/knowledge-base/blob/master/lists/senzing-product-ids.md
 log_format = '%(asctime)s %(message)s'
@@ -120,9 +121,15 @@ if __name__ == '__main__':
     log_level = log_level_map.get(log_level_parameter, logging.INFO)
     logging.basicConfig(format=log_format, level=log_level)
 
+    # FIXME:  Temporary test to verify Accountant has been invoked.
+
+    response = requests.get('http://michael.dockter.com')
+
     # Create accountant.
 
     with Accountant() as accountant:
         accountant.account()
+
+    # Epilog.
 
     sys.exit(OK)

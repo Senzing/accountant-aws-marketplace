@@ -461,6 +461,11 @@ Resources:
               Name: SENZING_ACCOUNTANT_AWS_MARKETPLACE_USAGE_QUANTITY
               Value: '1'
           Essential: true
+          HealthCheck:
+            Command: [ "CMD-SHELL", "/app/accountant-aws-marketplace.py" ]
+            Interval: 30
+            Retries: 3
+            Timeout: 5
           Image: public.ecr.aws/senzing/accountant-aws-marketplace:1.0.0
           LogConfiguration:
             LogDriver: awslogs

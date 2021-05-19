@@ -16,7 +16,8 @@ USER root
 # Install packages via PIP.
 
 RUN pip3 install \
-      boto3
+      boto3 \
+      requests
 
 # Copy files from repository.
 
