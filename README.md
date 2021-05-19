@@ -228,7 +228,7 @@ see [Environment Variables](https://github.com/Senzing/knowledge-base/blob/maste
 
 1. Visit [AWS Cloudformation console](https://console.aws.amazon.com/cloudformation/home)
 1. "Create stack" > "With new resources (standard)"
-1. :radio_button: Upload a template file
+1. Select :radio_button: Upload a template file
 1. Click "Choose file" button
 1. Select [cloudformation.yaml](cloudformation.yaml)
 1. Click "Next" button and continue to deploy
