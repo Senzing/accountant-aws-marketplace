@@ -17,13 +17,14 @@ The exploration looks at:
    [boto3](https://aws.amazon.com/sdk-for-python/)
    library for AWS MarketPlace
    [meter_usage()](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/meteringmarketplace.html#MarketplaceMetering.Client.meter_usage) invocations in
-   [accountant-aws-marketplace.py](accountant-aws-marketplace.p)
+   [accountant-aws-marketplace.py](accountant-aws-marketplace.py).
 1. Using Docker's
    [HEALTHCHECK](https://docs.docker.com/engine/reference/builder/#healthcheck)
-   as a method of periodic polling which does not require injecting AWS-specific code into the the primary code running in the
-   Docker container in
+   as a method of periodic polling which does not require injecting AWS-specific code
+   into the the primary code running in the Docker container in
    [Dockerfile](Dockerfile).
-1. Using docker-compose's [healthcheck:](https://docs.docker.com/compose/compose-file/compose-file-v3/#healthcheck) in
+1. Using docker-compose's [healthcheck](https://docs.docker.com/compose/compose-file/compose-file-v3/#healthcheck)
+   in
    [docker-compose.yaml](docker-compose.yaml).
 1. Using AWS Cloudformation template's
    [HealthCheck](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ecs-taskdefinition-containerdefinitions.html#cfn-ecs-taskdefinition-containerdefinition-healthcheck)
@@ -99,7 +100,7 @@ These are "one-time tasks" which may already have been completed.
 ### Download
 
 1. Get a local copy of
-   [template-python.py](template-python.py).
+   [accountant-aws-marketplace.py](accountant-aws-marketplace.py).
    Example:
 
     1. :pencil2: Specify where to download file.
