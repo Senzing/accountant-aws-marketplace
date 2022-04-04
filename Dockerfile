@@ -1,7 +1,7 @@
-ARG BASE_IMAGE=senzing/senzing-base:1.6.4
+ARG BASE_IMAGE=senzing/senzing-base:1.6.6
 FROM ${BASE_IMAGE}
 
-ENV REFRESHED_AT=2022-01-06
+ENV REFRESHED_AT=2022-04-01
 
 LABEL Name="senzing/accountant-aws-marketplace" \
       Maintainer="support@senzing.com" \
