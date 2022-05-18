@@ -1,0 +1,23 @@
+[pylint]
+disable=
+    bad-continuation,
+    broad-except,
+    consider-using-f-string,
+    invalid-envvar-default,
+    invalid-name,
+    line-too-long,
+    logging-format-interpolation,
+    missing-class-docstring,
+    missing-module-docstring,
+    redefined-builtin,
+    too-many-branches,
+    too-many-locals,
+    unnecessary-pass,
+    unused-argument,
+    wrong-import-order,
+good-names=
+    template-python
+ignore=
+    __init__.py,
+notes=
+    FIXME,
