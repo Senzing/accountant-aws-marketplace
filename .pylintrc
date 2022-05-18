@@ -3,6 +3,7 @@ disable=
     bad-continuation,
     broad-except,
     consider-using-f-string,
+    import-error,
     invalid-envvar-default,
     invalid-name,
     line-too-long,
@@ -10,10 +11,12 @@ disable=
     missing-class-docstring,
     missing-module-docstring,
     redefined-builtin,
+    redefined-outer-name,
     too-many-branches,
     too-many-locals,
     unnecessary-pass,
     unused-argument,
+    unused-import,
     wrong-import-order,
 good-names=
     template-python
